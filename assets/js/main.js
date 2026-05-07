@@ -13,12 +13,17 @@ class Gallery {
 
     async loadImages() {
         try {
+            DebugConsole.info('[REQUEST] GET index.php?action=list');
+            const startTime = performance.now();
             const response = await fetch('index.php?action=list');
+            const elapsed = (performance.now() - startTime).toFixed(2);
             const data = await response.json();
             this.images = data;
+            DebugConsole.success(`[RESPONSE] action=list | Status: ${response.status} | Time: ${elapsed}ms | Images: ${data.length}`);
             this.renderCarousel();
             this.renderGrid();
         } catch (error) {
+            DebugConsole.error(`[ERROR] loadImages: ${error.message}`);
             console.error('Error loading images:', error);
         }
     }
@@ -27,14 +32,19 @@ class Gallery {
         const track = document.getElementById('carousel-track');
         const dotsContainer = document.getElementById('carousel-dots');
 
-        if (!track || !dotsContainer) return;
+        if (!track || !dotsContainer) {
+            DebugConsole.warn('[UI] Elementos del carrusel no encontrados');
+            return;
+        }
 
         if (this.images.length === 0) {
             track.innerHTML = '<div class="empty-state"><p>No hay imágenes. Sube una para comenzar.</p></div>';
             dotsContainer.innerHTML = '';
+            DebugConsole.warn('[UI] Carrusel vacio - no hay imagenes');
             return;
         }
 
+        DebugConsole.info(`[UI] Renderizando carrusel con ${this.images.length} imagen(es)`);
         track.innerHTML = this.images.map((img, i) => `
             <div class="carousel-slide" data-index="${i}">
                 <img src="${img.s3_url || img.file_path}" alt="${img.title}" loading="${i === 0 ? 'eager' : 'lazy'}">
@@ -54,13 +64,18 @@ class Gallery {
 
     renderGrid() {
         const grid = document.getElementById('images-grid');
-        if (!grid) return;
-
-        if (this.images.length === 0) {
-            grid.innerHTML = '<div class="empty-state"><p>No hay imágenes en la galería.</p></div>';
+        if (!grid) {
+            DebugConsole.warn('[UI] Grid de imagenes no encontrado');
             return;
         }
 
+        if (this.images.length === 0) {
+            grid.innerHTML = '<div class="empty-state"><p>No hay imágenes en la galería.</p></div>';
+            DebugConsole.warn('[UI] Grid vacio - no hay imagenes');
+            return;
+        }
+
+        DebugConsole.info(`[UI] Renderizando grid con ${this.images.length} imagen(es)`);
         grid.innerHTML = this.images.map(img => `
             <div class="image-card" data-id="${img.id}">
                 <img src="${img.s3_url || img.file_path}" alt="${img.title}" loading="lazy">
@@ -95,31 +110,42 @@ class Gallery {
 
     async loadDebugState() {
         try {
+            DebugConsole.info('[REQUEST] GET index.php?action=status');
             const response = await fetch('index.php?action=status');
             const data = await response.json();
             this.debugMode = data.debug_mode;
+
+            DebugConsole.info(`[DEBUG] Mode: ${this.debugMode ? 'ON' : 'OFF'}`);
+            DebugConsole.info(`[DB] Connected: ${data.db_connected}`);
+            if (data.db_error) DebugConsole.error(`[DB] Error: ${data.db_error}`);
+            DebugConsole.info(`[S3] Configured: ${data.s3_configured}`);
+            DebugConsole.info(`[MEMORY] Usage: ${data.memory_usage} KB`);
+            DebugConsole.info(`[PHP] Version: ${data.php_version}`);
 
             const toggle = document.getElementById('debug-toggle');
             if (toggle) toggle.checked = this.debugMode;
 
             this.updateDebugPanel(data);
         } catch (error) {
-            console.error('Error loading debug state:', error);
+            DebugConsole.error(`[ERROR] loadDebugState: ${error.message}`);
         }
     }
 
     async toggleDebug(enabled) {
         try {
-            await fetch('index.php?action=toggleDebug', {
+            DebugConsole.info(`[REQUEST] POST index.php?action=toggleDebug | Body: ${JSON.stringify({ enabled })}`);
+            const response = await fetch('index.php?action=toggleDebug', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled })
             });
+            const result = await response.json();
 
             this.debugMode = enabled;
+            DebugConsole.success(`[RESPONSE] toggleDebug | Debug: ${enabled ? 'ON' : 'OFF'}`);
             this.updateDebugVisibility();
         } catch (error) {
-            console.error('Error toggling debug:', error);
+            DebugConsole.error(`[ERROR] toggleDebug: ${error.message}`);
         }
     }
 
@@ -211,31 +237,47 @@ class Gallery {
 
         const form = e.target;
         const formData = new FormData(form);
+        const fileInput = form.querySelector('input[type="file"]');
+        const fileName = fileInput?.files[0]?.name || 'unknown';
+
+        DebugConsole.info(`[UPLOAD] Iniciando - Archivo: ${fileName}`);
+        DebugConsole.info(`[UPLOAD] Titulo: ${form.title?.value || 'N/A'}`);
 
         try {
+            DebugConsole.info('[REQUEST] POST index.php?action=upload');
+            const startTime = performance.now();
             const response = await fetch('index.php?action=upload', {
                 method: 'POST',
                 body: formData
             });
-
+            const elapsed = (performance.now() - startTime).toFixed(2);
             const result = await response.json();
 
             if (result.success) {
+                DebugConsole.success(`[UPLOAD] Exito - Time: ${elapsed}ms | ID: ${result.data?.id}`);
+                DebugConsole.info(`[UPLOAD] File path: ${result.data?.file_path}`);
+                DebugConsole.info(`[UPLOAD] S3 URL: ${result.data?.s3_url || 'Local'}`);
                 this.showMessage('Imagen subida exitosamente', 'success');
                 form.reset();
                 await this.loadImages();
             } else {
+                DebugConsole.error(`[UPLOAD] Fallo - ${result.error}`);
                 this.showMessage(result.error || 'Error al subir imagen', 'error');
             }
         } catch (error) {
+            DebugConsole.error(`[UPLOAD] Error de conexion: ${error.message}`);
             this.showMessage('Error de conexión', 'error');
         }
     }
 
     openEditModal(id) {
         const image = this.images.find(img => img.id === id);
-        if (!image) return;
+        if (!image) {
+            DebugConsole.warn(`[EDIT] Imagen ID ${id} no encontrada`);
+            return;
+        }
 
+        DebugConsole.info(`[EDIT] Abriendo modal para imagen ID: ${id}`);
         document.getElementById('edit-id').value = image.id;
         document.getElementById('edit-title').value = image.title;
         document.getElementById('edit-description').value = image.description || '';
@@ -244,6 +286,7 @@ class Gallery {
     }
 
     closeModal() {
+        DebugConsole.info('[EDIT] Cerrando modal');
         document.getElementById('edit-modal').classList.remove('active');
     }
 
@@ -251,48 +294,63 @@ class Gallery {
         e.preventDefault();
 
         const formData = new FormData(e.target);
+        const id = formData.get('id');
+        const title = formData.get('title');
+
+        DebugConsole.info(`[EDIT] Actualizando imagen ID: ${id} | Titulo: ${title}`);
 
         try {
+            DebugConsole.info('[REQUEST] POST index.php?action=update');
             const response = await fetch('index.php?action=update', {
                 method: 'POST',
                 body: formData
             });
-
             const result = await response.json();
 
             if (result.success) {
+                DebugConsole.success('[EDIT] Actualizacion exitosa');
                 this.showMessage('Imagen actualizada', 'success');
                 this.closeModal();
                 await this.loadImages();
             } else {
+                DebugConsole.error('[EDIT] Error en actualizacion');
                 this.showMessage('Error al actualizar', 'error');
             }
         } catch (error) {
+            DebugConsole.error(`[EDIT] Error de conexion: ${error.message}`);
             this.showMessage('Error de conexión', 'error');
         }
     }
 
     async deleteImage(id) {
-        if (!confirm('¿Estás seguro de eliminar esta imagen?')) return;
+        if (!confirm('¿Estás seguro de eliminar esta imagen?')) {
+            DebugConsole.warn('[DELETE] Operacion cancelada por usuario');
+            return;
+        }
+
+        DebugConsole.info(`[DELETE] Eliminando imagen ID: ${id}`);
 
         try {
             const formData = new FormData();
             formData.append('id', id);
 
+            DebugConsole.info('[REQUEST] POST index.php?action=delete');
             const response = await fetch('index.php?action=delete', {
                 method: 'POST',
                 body: formData
             });
-
             const result = await response.json();
 
             if (result.success) {
+                DebugConsole.success(`[DELETE] Imagen ID ${id} eliminada`);
                 this.showMessage('Imagen eliminada', 'success');
                 await this.loadImages();
             } else {
+                DebugConsole.error('[DELETE] Error al eliminar');
                 this.showMessage('Error al eliminar', 'error');
             }
         } catch (error) {
+            DebugConsole.error(`[DELETE] Error de conexion: ${error.message}`);
             this.showMessage('Error de conexión', 'error');
         }
     }

@@ -347,47 +347,113 @@ footer {
     background-color: var(--cafe-900);
     color: var(--cafe-100);
     padding: 1rem 2rem;
+    position: relative;
 }
 
-.debug-panel {
-    display: none;
+.debug-toggle-wrapper {
+    position: absolute;
+    right: 1rem;
+    top: -40px;
 }
 
-.debug-panel.visible {
-    display: block;
-}
-
-.debug-panel h4 {
-    color: var(--cafe-300);
-    margin-bottom: 0.75rem;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.debug-indicators {
+.console-panel {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 450px;
+    max-height: 60vh;
+    background-color: #1a1a2e;
+    border: 1px solid var(--cafe-600);
+    border-radius: var(--radius) var(--radius) 0 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.debug-item {
+.console-panel.collapsed {
+    transform: translateY(calc(100% - 45px));
+}
+
+.console-header {
+    background-color: var(--cafe-800);
+    padding: 0.75rem 1rem;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
+    cursor: pointer;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.console-header span {
+    font-weight: 600;
     font-size: 0.875rem;
+    color: var(--cafe-100);
 }
 
-.debug-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+#clear-console {
+    background-color: var(--cafe-600);
+    color: white;
+    border: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
 }
 
-.debug-dot.green { background-color: #27ae60; }
-.debug-dot.red { background-color: #e74c3c; }
-.debug-dot.yellow { background-color: #f39c12; }
-.debug-dot.gray { background-color: #95a5a6; }
+#clear-console:hover {
+    background-color: var(--cafe-500);
+}
+
+.console-log {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(60vh - 45px);
+    padding: 0.5rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    background-color: #0f0f1a;
+}
+
+.console-log::-webkit-scrollbar {
+    width: 8px;
+}
+
+.console-log::-webkit-scrollbar-track {
+    background: #1a1a2e;
+}
+
+.console-log::-webkit-scrollbar-thumb {
+    background: var(--cafe-600);
+    border-radius: 4px;
+}
+
+.console-entry {
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    gap: 0.75rem;
+}
+
+.console-entry:last-child {
+    border-bottom: none;
+}
+
+.console-time {
+    color: #666;
+    white-space: nowrap;
+}
+
+.console-msg {
+    word-break: break-word;
+}
+
+.console-entry.info .console-msg { color: #e0e0e0; }
+.console-entry.success .console-msg { color: #27ae60; }
+.console-entry.error .console-msg { color: #e74c3c; }
+.console-entry.warn .console-msg { color: #f39c12; }
 
 .empty-state {
     text-align: center;
