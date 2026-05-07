@@ -19,6 +19,7 @@ class Config {
             'db_password' => $_ENV['DB_PASSWORD'] ?? '',
             'aws_access_key' => $_ENV['AWS_ACCESS_KEY_ID'] ?? '',
             'aws_secret_key' => $_ENV['AWS_SECRET_ACCESS_KEY'] ?? '',
+            'aws_session_token' => $_ENV['AWS_SESSION_TOKEN'] ?? '',
             'aws_region' => $_ENV['AWS_REGION'] ?? 'us-east-1',
             'aws_s3_bucket' => $_ENV['AWS_S3_BUCKET'] ?? '',
             'aws_endpoint' => $_ENV['AWS_ENDPOINT'] ?? '',

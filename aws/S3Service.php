@@ -7,6 +7,7 @@ class S3Service {
     private $region;
     private $accessKey;
     private $secretKey;
+    private $sessionToken;
     private $endpoint;
     private $client = null;
     private $configured = false;
@@ -17,9 +18,10 @@ class S3Service {
         $this->region = Config::get('aws_region');
         $this->accessKey = Config::get('aws_access_key');
         $this->secretKey = Config::get('aws_secret_key');
+        $this->sessionToken = Config::get('aws_session_token');
         $this->endpoint = Config::get('aws_endpoint');
 
-        if (!empty($this->accessKey) && !empty($this->secretKey) && !empty($this->bucket)) {
+        if (!empty($this->bucket)) {
             $this->configured = true;
             $this->initClient();
         }
@@ -32,27 +34,32 @@ class S3Service {
         }
 
         try {
-            if (!empty($this->endpoint)) {
-                $this->client = new Aws\S3\S3Client([
-                    'region' => $this->region,
-                    'version' => 'latest',
-                    'credentials' => [
-                        'key' => $this->accessKey,
-                        'secret' => $this->secretKey,
-                    ],
-                    'endpoint' => $this->endpoint,
-                    'use_path_style_endpoint' => true,
-                ]);
-            } else {
-                $this->client = new Aws\S3\S3Client([
-                    'region' => $this->region,
-                    'version' => 'latest',
-                    'credentials' => [
-                        'key' => $this->accessKey,
-                        'secret' => $this->secretKey,
-                    ],
-                ]);
+            $options = [
+                'region' => $this->region,
+                'version' => 'latest',
+            ];
+
+            $credentials = [];
+            if (!empty($this->accessKey)) {
+                $credentials['key'] = $this->accessKey;
             }
+            if (!empty($this->secretKey)) {
+                $credentials['secret'] = $this->secretKey;
+            }
+            if (!empty($this->sessionToken)) {
+                $credentials['token'] = $this->sessionToken;
+            }
+
+            if (!empty($credentials)) {
+                $options['credentials'] = $credentials;
+            }
+
+            if (!empty($this->endpoint)) {
+                $options['endpoint'] = $this->endpoint;
+                $options['use_path_style_endpoint'] = true;
+            }
+
+            $this->client = new Aws\S3\S3Client($options);
         } catch (Exception $e) {
             $this->configured = false;
         }
@@ -73,10 +80,9 @@ class S3Service {
                 'Bucket' => $this->bucket,
                 'Key' => $key,
                 'SourceFile' => $filePath,
-                'ACL' => 'public-read',
             ]);
 
-            return $result['ObjectURL'];
+            return $this->getPresignedUrl($fileName);
         } catch (Exception $e) {
             return null;
         }
@@ -100,10 +106,24 @@ class S3Service {
     }
 
     public function getUrl($fileName) {
+        return $this->getPresignedUrl($fileName);
+    }
+
+    public function getPresignedUrl($fileName, $expires = '+20 minutes') {
         if (!$this->isConfigured()) {
             return null;
         }
 
-        return "https://{$this->bucket}.s3.{$this->region}.amazonaws.com/{$this->folder}/{$fileName}";
+        try {
+            $key = $this->folder . '/' . $fileName;
+            $cmd = $this->client->getCommand('GetObject', [
+                'Bucket' => $this->bucket,
+                'Key' => $key,
+            ]);
+            $request = $this->client->createPresignedRequest($cmd, $expires);
+            return (string)$request->getUri();
+        } catch (Exception $e) {
+            return null;
+        }
     }
 }

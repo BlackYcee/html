@@ -73,10 +73,11 @@ class ImageController {
             $result = $this->model->create($title, $description, $localPath, $s3Url);
 
             if ($result) {
+                $lastId = Database::getInstance()->getConnection()->lastInsertId();
                 echo json_encode([
                     'success' => true,
                     'data' => [
-                        'id' => $this->db->getConnection()->lastInsertId(),
+                        'id' => $lastId,
                         'title' => $title,
                         'file_path' => $localPath,
                         's3_url' => $s3Url,
