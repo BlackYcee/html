@@ -39,20 +39,22 @@ class S3Service {
         return $this->configured && $this->client !== null;
     }
 
-    public function upload($filePath, $fileName) {
+    public function upload($localPath, $fileName) {
         if (!$this->isConfigured()) {
             return null;
         }
 
+        $key = $this->folder . '/' . $fileName;
+
         try {
-            $key = $this->folder . '/' . $fileName;
             $this->client->putObject([
                 'Bucket' => $this->bucket,
                 'Key' => $key,
-                'SourceFile' => $filePath,
+                'SourceFile' => $localPath,
+                'ACL' => 'public-read',
             ]);
 
-            return $this->getPublicUrl($fileName);
+            return $this->client->getObjectUrl($this->bucket, $key);
         } catch (Exception $e) {
             return null;
         }
@@ -63,8 +65,9 @@ class S3Service {
             return false;
         }
 
+        $key = $this->folder . '/' . $fileName;
+
         try {
-            $key = $this->folder . '/' . $fileName;
             $this->client->deleteObject([
                 'Bucket' => $this->bucket,
                 'Key' => $key,
@@ -76,29 +79,15 @@ class S3Service {
     }
 
     public function getUrl($fileName) {
-        return $this->getPublicUrl($fileName);
-    }
-
-    public function getPublicUrl($fileName) {
-        $key = $this->folder . '/' . $fileName;
-        return $this->client->getObjectUrl($this->bucket, $key);
-    }
-
-    public function getPresignedUrl($fileName, $expires = '+20 minutes') {
         if (!$this->isConfigured()) {
             return null;
         }
 
-        try {
-            $key = $this->folder . '/' . $fileName;
-            $cmd = $this->client->getCommand('GetObject', [
-                'Bucket' => $this->bucket,
-                'Key' => $key,
-            ]);
-            $request = $this->client->createPresignedRequest($cmd, $expires);
-            return (string)$request->getUri();
-        } catch (Exception $e) {
-            return null;
-        }
+        $key = $this->folder . '/' . $fileName;
+        return $this->client->getObjectUrl($this->bucket, $key);
+    }
+
+    public function getPublicUrl($fileName) {
+        return $this->getUrl($fileName);
     }
 }
