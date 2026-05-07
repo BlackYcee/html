@@ -80,7 +80,8 @@ class S3Service {
     }
 
     public function getPublicUrl($fileName) {
-        return "https://{$this->bucket}.s3.amazonaws.com/{$this->folder}/{$fileName}";
+        $key = $this->folder . '/' . $fileName;
+        return $this->client->getObjectUrl($this->bucket, $key);
     }
 
     public function getPresignedUrl($fileName, $expires = '+20 minutes') {
