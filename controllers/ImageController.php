@@ -44,18 +44,23 @@ class ImageController {
         }
 
         $allowedTypes = Config::get('allowed_types');
+        $validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
 
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
         if (!in_array($mimeType, $allowedTypes)) {
-            echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido']);
-            return;
+            if (!in_array($extension, $validExtensions)) {
+                echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido']);
+                return;
+            }
         }
 
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
         $fileName = uniqid() . '_' . time() . '.' . $extension;
-        
+
         $uploadDir = Config::get('upload_dir');
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
@@ -65,7 +70,7 @@ class ImageController {
 
         if (move_uploaded_file($file['tmp_name'], $localPath)) {
             $s3Url = null;
-            
+
             if ($this->s3->isConfigured()) {
                 $s3Url = $this->s3->upload($localPath, $fileName);
             }

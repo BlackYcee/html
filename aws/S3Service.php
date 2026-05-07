@@ -5,21 +5,13 @@ class S3Service {
     private $bucket;
     private $folder;
     private $region;
-    private $accessKey;
-    private $secretKey;
-    private $sessionToken;
-    private $endpoint;
     private $client = null;
     private $configured = false;
 
     public function __construct() {
         $this->bucket = Config::get('aws_s3_bucket');
         $this->folder = Config::get('aws_s3_folder');
-        $this->region = Config::get('aws_region');
-        $this->accessKey = Config::get('aws_access_key');
-        $this->secretKey = Config::get('aws_secret_key');
-        $this->sessionToken = Config::get('aws_session_token');
-        $this->endpoint = Config::get('aws_endpoint');
+        $this->region = Config::get('aws_region', 'us-east-1');
 
         if (!empty($this->bucket)) {
             $this->configured = true;
@@ -34,32 +26,10 @@ class S3Service {
         }
 
         try {
-            $options = [
+            $this->client = new Aws\S3\S3Client([
                 'region' => $this->region,
                 'version' => 'latest',
-            ];
-
-            $credentials = [];
-            if (!empty($this->accessKey)) {
-                $credentials['key'] = $this->accessKey;
-            }
-            if (!empty($this->secretKey)) {
-                $credentials['secret'] = $this->secretKey;
-            }
-            if (!empty($this->sessionToken)) {
-                $credentials['token'] = $this->sessionToken;
-            }
-
-            if (!empty($credentials)) {
-                $options['credentials'] = $credentials;
-            }
-
-            if (!empty($this->endpoint)) {
-                $options['endpoint'] = $this->endpoint;
-                $options['use_path_style_endpoint'] = true;
-            }
-
-            $this->client = new Aws\S3\S3Client($options);
+            ]);
         } catch (Exception $e) {
             $this->configured = false;
         }
@@ -76,7 +46,7 @@ class S3Service {
 
         try {
             $key = $this->folder . '/' . $fileName;
-            $result = $this->client->putObject([
+            $this->client->putObject([
                 'Bucket' => $this->bucket,
                 'Key' => $key,
                 'SourceFile' => $filePath,
