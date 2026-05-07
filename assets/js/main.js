@@ -125,7 +125,7 @@ class Gallery {
             const toggle = document.getElementById('debug-toggle');
             if (toggle) toggle.checked = this.debugMode;
 
-            this.updateDebugPanel(data);
+            this.updateDebugVisibility();
         } catch (error) {
             DebugConsole.error(`[ERROR] loadDebugState: ${error.message}`);
         }
@@ -150,42 +150,14 @@ class Gallery {
     }
 
     updateDebugVisibility() {
-        const panel = document.getElementById('debug-panel');
+        const panel = document.getElementById('console-panel');
         if (panel) {
-            panel.classList.toggle('visible', this.debugMode);
+            if (this.debugMode) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
         }
-    }
-
-    updateDebugPanel(data) {
-        const panel = document.getElementById('debug-panel');
-        if (!panel) return;
-
-        panel.innerHTML = `
-            <h4>Debug Panel</h4>
-            <div class="debug-indicators">
-                <div class="debug-item">
-                    <span class="debug-dot ${data.db_connected ? 'green' : 'red'}"></span>
-                    <span>DB: ${data.db_connected ? 'Connected' : 'Disconnected'}</span>
-                    ${data.db_error ? `<span style="font-size:0.75rem;color:var(--cafe-300);">${data.db_error}</span>` : ''}
-                </div>
-                <div class="debug-item">
-                    <span class="debug-dot ${data.s3_configured ? 'green' : 'yellow'}"></span>
-                    <span>S3: ${data.s3_configured ? 'Configured' : 'Not configured'}</span>
-                </div>
-                <div class="debug-item">
-                    <span class="debug-dot ${data.debug_mode ? 'green' : 'gray'}"></span>
-                    <span>Debug: ${data.debug_mode ? 'ON' : 'OFF'}</span>
-                </div>
-                <div class="debug-item">
-                    <span>Memory: ${data.memory_usage} KB</span>
-                </div>
-                <div class="debug-item">
-                    <span>PHP: ${data.php_version}</span>
-                </div>
-            </div>
-        `;
-
-        this.updateDebugVisibility();
     }
 
     prevSlide() {

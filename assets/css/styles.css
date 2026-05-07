@@ -372,6 +372,10 @@ footer {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.console-panel.hidden {
+    display: none;
+}
+
 .console-panel.collapsed {
     transform: translateY(calc(100% - 45px));
 }
