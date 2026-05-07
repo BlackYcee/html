@@ -52,7 +52,7 @@ class S3Service {
                 'SourceFile' => $filePath,
             ]);
 
-            return $this->getPresignedUrl($fileName);
+            return $this->getPublicUrl($fileName);
         } catch (Exception $e) {
             return null;
         }
@@ -76,7 +76,11 @@ class S3Service {
     }
 
     public function getUrl($fileName) {
-        return $this->getPresignedUrl($fileName);
+        return $this->getPublicUrl($fileName);
+    }
+
+    public function getPublicUrl($fileName) {
+        return "https://{$this->bucket}.s3.amazonaws.com/{$this->folder}/{$fileName}";
     }
 
     public function getPresignedUrl($fileName, $expires = '+20 minutes') {
