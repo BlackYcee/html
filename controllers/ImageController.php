@@ -46,17 +46,25 @@ class ImageController {
         $allowedTypes = Config::get('allowed_types');
         $validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
-
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        if (!in_array($mimeType, $allowedTypes)) {
-            if (!in_array($extension, $validExtensions)) {
-                echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido']);
-                return;
-            }
+        $mimeType = null;
+        if (function_exists('finfo_file') && !empty($file['tmp_name'])) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+        }
+
+        if (!$mimeType || $mimeType === 'application/octet-stream') {
+            $mimeType = $file['type'] ?? '';
+        }
+
+        $mimeValid = in_array($mimeType, $allowedTypes);
+        $extValid = in_array($extension, $validExtensions);
+
+        if (!$mimeValid && !$extValid) {
+            echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido']);
+            return;
         }
 
         $fileName = uniqid() . '_' . time() . '.' . $extension;
